@@ -113,24 +113,6 @@ class ScalarDistribution:
 
         return self._inverse_cdf_interpolator(x)
 
-    def interpolate_pdf(self, x: np.ndarray) -> np.ndarray:
-        """
-        Interpolate the PDF values in the requested locations.
-        The PDF is assumed to be a piecewise constant function, so interpolation is done by taking the PDF value of the
-        next bin. We use a piecewise constant pdf so that cdf is simple and linear.
-        :param x: the requested locations
-        :return: the interpolated PDF values in the requested locations
-        """
-        if self._pdf_interpolator is None:
-            bins_values, pdf_values = self.pdf
-            self._pdf_interpolator = interp1d(bins_values,
-                                              pdf_values,
-                                              kind='next',
-                                              bounds_error=False,
-                                              fill_value=(0., 0.))
-
-        return self._pdf_interpolator(x)
-
     @classmethod
     def create_normal_distribution(cls,
                                    start_percentile: float,

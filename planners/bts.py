@@ -16,10 +16,7 @@ APPROXIMATE_GAUSSIAN_PERCENTILE = True  # True if to approximate the percentile 
 class BTS(PlannerBase):
     def __init__(self, simulator: ProcGenSimulator, nn_model_path: str):
         super().__init__(simulator, nn_model_path, BUCTNode)
-
         self._transform_utils = DistributionTransformationUtils()
-        # This random generator is set here so that using Thompson Sampling will be reproducible between runs
-        self._prng = np.random.RandomState(seed=0)
 
     def _search(self,
                 root_state: ExtendedState,
@@ -70,15 +67,15 @@ class BTS(PlannerBase):
         if len(node.qsa_prior) == 0:
             self._generate_qsa_priors(node=node)
 
-        # if Config().mcts.bayesian_uct.select_action_to_explore_by_thompson_sampling:  # TODO this is for TSTS and TSTS_det
-        #     exploration_action = self._select_action_by_thompson_sampling(node=node, actions=node.available_actions,
-        #                                                                   use_max_distribution_for_selection=Config().mcts.bayesian_uct.backup_max)
+        return self._select_action_to_explore(node=node, actions=actions)
 
+    def _select_action_to_explore(self, node: BUCTNode, actions: List[ProcgenAction]) -> ProcgenAction:
         # Select action to explore according to the Pth percentile of the Qsa
         percentile = self._calculate_node_exploration_percentile(node=node)
         exploration_action = self._select_action_by_percentile(node=node,
                                                                actions=actions,
-                                                               percentile=percentile,  # TODO remove use_max_distribution_for_selection
+                                                               percentile=percentile,
+                                                               # TODO remove use_max_distribution_for_selection
                                                                use_max_distribution_for_selection=True)
 
         return exploration_action
@@ -244,66 +241,6 @@ class BTS(PlannerBase):
         # the node which is normalized by this number. Relevant only when select_action_to_explore_by_percentile is True.
 
         return 1. - (1. - select_percentile_init) * np.exp(-(num_visits - 1.) / select_percentile_scale)
-
-    # def _select_action_by_thompson_sampling(self, node: BUCTNode, actions: List[ProcgenAction],
-    #                                         use_max_distribution_for_selection: bool = False) -> ProcgenAction:
-    #     """
-    #     Select the action to explore by using thompson sampling on their max-induced distributions.
-    #     :param node: the node to choose an action from
-    #     :param actions: list of actions to choose from
-    #     :param use_max_distribution_for_selection: True if we use the max distribution, False if we take the best arm distribution
-    #     :return: the action with the highest sample from thompson sampling.
-    #     """
-    #     # TODO: We might not want the same "num_thompson_samples_per_action" value for training and inference.
-    #     posteriors = node.qsa_posterior_max if use_max_distribution_for_selection else node.qsa_posterior
-    #     if Config().mcts.bayesian_uct.thompson_sampling_approximate_gaussian:
-    #         distribution_samples = np.array([self._prng.normal(posteriors[action].expectation, posteriors[action].std,
-    #                                                            Config().mcts.bayesian_uct.num_thompson_samples_per_action)
-    #                                      for action in actions])
-    #     else:
-    #         distribution_samples = np.zeros((len(actions), 1))
-    #         for i, a in enumerate(actions):
-    #             bins, pdf = posteriors[a].pdf
-    #             bin_size = bins[1] - bins[0]
-    #             distribution_samples[i, 0] = self._prng.choice(a=bins, p=pdf * bin_size) + \
-    #                                       self._prng.uniform(low=0, high=bin_size)
-    #     if Config().mcts.bayesian_uct.add_exploration_term_to_thompson_sampling_selection:
-    #         # Extract the prior probabilities for actions
-    #         actions_qsa_values = [prior.expectation for prior in node.qsa_prior.values()]
-    #         # Convert to prior probabilities
-    #         shifted_qsa_values = actions_qsa_values - np.max(actions_qsa_values)
-    #         scaled_shifted_qsa_values = shifted_qsa_values / Config().mcts.policy_network_temperature_scaling
-    #         # When using fp32 np.exp(-89.) causes underflow errors, this is used to avoid this underflow
-    #         # since the exp_qsa_values are divided by their sum, which can be larger than 1, we use a value of -80
-    #         # which provides enough margin even if their sum is 1500 (i.e 1500 actions with similar qsa).
-    #         scaled_shifted_qsa_values = np.clip(scaled_shifted_qsa_values.astype(np.float32), a_min=-80., a_max=0.)
-    #         exp_qsa_values = np.exp(scaled_shifted_qsa_values)
-    #         action_probs = exp_qsa_values / np.sum(exp_qsa_values)
-    #         # Extract the number of visits for each action
-    #         actions_num_visits = np.array([node.get_child(action=action).num_visits
-    #                                        if action in node.explored_actions else 0.
-    #                                        for action in node.available_actions])
-    #
-    #         exploration_terms = self._calculate_exploration_terms_pucb(action_probs, node.num_visits, actions_num_visits)
-    #         distribution_samples += exploration_terms[:, None]
-    #
-    #     return actions[np.argmax(np.max(distribution_samples, axis=1))]
-
-    # @classmethod
-    # def _calculate_exploration_terms_pucb(cls,
-    #                                       actions_priors: np.ndarray,
-    #                                       num_visits: int,
-    #                                       actions_num_visits: np.ndarray) -> np.ndarray:
-    #     """
-    #     Calculates the exploration terms of multiple actions
-    #     :param actions_priors: numpy array with prior for every action
-    #     :param num_visits: number of visits for the parent node
-    #     :param actions_num_visits: number of visits per action
-    #     :return: numpy array of exploration terms for all actions, including PUCB constant
-    #     """
-    #     action_exploration_terms = actions_priors * math.sqrt(1e-3 + num_visits) / (1. + actions_num_visits)
-    #     effective_branching_factor = np.exp(-np.sum(actions_priors * np.log(actions_priors + 1e-12)))
-    #     return Config().mcts.pucb_constant * effective_branching_factor * action_exploration_terms
 
     def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction],
                                      percentile: float, use_max_distribution_for_selection: bool = False) -> ProcgenAction:
