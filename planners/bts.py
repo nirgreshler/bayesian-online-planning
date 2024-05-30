@@ -2,12 +2,11 @@ from typing import List
 
 import numpy as np
 import torch
-from config.config import Config
 
+from config.config import Config
 from planners.buct_node import BUCTNode
-from planners.interface import PlannerBase
+from planners.planner_base import PlannerBase
 from procgen_wrapper.action_space import ProcgenAction
-from procgen_wrapper.extended_state import ExtendedState
 from procgen_wrapper.procgen_simulator import ProcGenSimulator
 from utils.distribution import ScalarDistribution, DistributionTransformationUtils, MIN_STD
 
@@ -20,39 +19,23 @@ class BTS(PlannerBase):
         super().__init__(simulator, nn_model_path, BUCTNode)
         self._transform_utils = DistributionTransformationUtils()
 
-    def _search(self,
-                root_state: ExtendedState,
-                max_iterations: int) -> BUCTNode:
-        """
-        Perform search
-        :param context: the context
-        :param root_state: the root state of the search tree
-        :param max_time: the maximal wall time allocated for the search
-        :param min_iterations: the minimum iterations for the search
-        :param max_iterations: the maximum iterations for the search
-        :return: the Bayesian UCT node which holds the resulted search tree
-        """
-
-        self._root_node = self._node_type(state=root_state)
-        self._simulator.reset()
-        self._simulator.set_raw_state(root_state.raw_state)
-
-        iter_counter = 0
-
-        while iter_counter < max_iterations:
-
-            # Perform selection and expansion step of Bayesian UCT
-            node = self._select_and_expand(self._root_node)
-
-            # Perform backup step of Bayesian UCT
-            self._backup(node)
-
-            iter_counter += 1
-
-        return self._root_node
-
     def _commit_action(self, root_node: BUCTNode) -> ProcgenAction:
-        pass
+        """
+        Sort the explored actions by a pre-defined percentile of their Q(s,a) distributions, from highest to lowest.
+        :return: list of the sorted action
+        """
+        qsas_percentile = {}
+        actions = root_node.available_actions
+        if Config().softmax_action_commitment:
+            qsa_values = np.array([root_node.qsa_posterior[a].expectation for a in actions])
+            chosen_idx = self._sample_best_action(qsa_values)
+            return actions[chosen_idx]
+
+        for action in actions:
+            qsas_percentile[action] = \
+                root_node.qsa_posterior[action].interpolate_inverse_cdf(Config().action_commitment_percentile)
+
+        return sorted(actions, key=lambda k: qsas_percentile[k], reverse=True)[0]
 
     def _select(self, node: BUCTNode) -> ProcgenAction:
         """
@@ -217,7 +200,7 @@ class BTS(PlannerBase):
         :return: the exploration percentile
         """
         num_visits = min(node.num_visits, MAX_NODE_VISITS)
-        return 1. - (1. - Config.select_percentile_init) * np.exp(-(num_visits - 1.) / Config.select_percentile_scale)
+        return 1. - (1. - Config().select_percentile_init) * np.exp(-(num_visits - 1.) / Config().select_percentile_scale)
 
     def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction], percentile: float,
                                      use_max_distribution_for_selection: bool = False) -> ProcgenAction:
@@ -275,10 +258,9 @@ class BTS(PlannerBase):
 
 
 if __name__ == '__main__':
-    simulator = ProcGenSimulator(env_name='maze', rand_seed=0)
+    simulator = ProcGenSimulator(env_name='maze', rand_seed=190)
     init_state = simulator.reset()
     model_path = '../neural_network/models/Maze/model_1/ProcgenModule.bin'
     planner = BTS(simulator=simulator, nn_model_path=model_path)
     search_iterations = 100
-    root_node = planner._search(init_state, max_iterations=search_iterations)
-    # planner.plan(init_state, search_budget=search_iterations)  # TODO
+    action = planner.plan(init_state, search_budget=search_iterations)

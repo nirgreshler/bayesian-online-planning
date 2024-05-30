@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 from planners.tree_node import TreeNode
 from procgen_wrapper.action_space import ProcgenAction
@@ -117,37 +117,6 @@ class BUCTNode(TreeNode):
         Set the number of visits of the node
         """
         self._num_visits = value
-
-    def get_sorted_actions(self, also_unexplored: bool = False) -> List[ProcgenAction]:
-        # TODO get_sorted_actions shouldn't be a part of the node (in UCT as well)
-        """
-        Sort the explored actions by a pre-defined percentile of their Q(s,a) distributions, from highest to lowest.
-        :return: list of the sorted action
-        """
-        qsas_percentile = {}
-        marginalization_distribution = self.qsa_posterior_max if Config().mcts.bayesian_uct.use_max_distribution_in_marginalization else self.qsa_posterior
-        actions = self.available_actions if also_unexplored else self.explored_actions
-        # TODO keep marginalize_using_thompson_sampling ?
-        # if Config().mcts.bayesian_uct.marginalize_using_thompson_sampling:
-        #     qsa_values = np.array([marginalization_distribution[a].expectation for a in actions])
-        #     shifted_qsa_values = qsa_values - np.max(qsa_values)
-        #     scaled_shifted_qsa_values = shifted_qsa_values / Config().mcts.policy_network_temperature_scaling
-        #     # When using fp32 np.exp(-89.) causes underflow errors, this is used to avoid this underflow
-        #     # since the exp_qsa_values are divided by their sum, which can be larger than 1, we use a value of -80
-        #     # which provides enough margin even if their sum is 1500 (i.e 1500 actions with similar qsa).
-        #     scaled_shifted_qsa_values = np.clip(scaled_shifted_qsa_values.astype(np.float32), a_min=-80., a_max=0.)
-        #     exp_qsa_values = np.exp(scaled_shifted_qsa_values)
-        #     action_probs = exp_qsa_values / np.sum(exp_qsa_values)
-        #     chosen_idx = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-        #     return [actions[chosen_idx]]
-        # else:
-
-        marginalization_percentile = 0.5  # TODO in config?
-
-        for action in actions:
-            qsas_percentile[action] = marginalization_distribution[action].interpolate_inverse_cdf(marginalization_percentile)
-
-        return sorted(actions, key=lambda k: qsas_percentile[k], reverse=True)
 
     def __str__(self):
         return "Expected value: {:.2f}, STD value {:.2f}, Num visits: {:.2f}".format(self.value_posterior.expectation,

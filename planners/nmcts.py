@@ -5,10 +5,9 @@ import numpy as np
 import torch
 
 from config.config import Config
-from planners.interface import PlannerBase
+from planners.planner_base import PlannerBase
 from planners.uct_node import UCTNode
 from procgen_wrapper.action_space import ProcgenAction
-from procgen_wrapper.extended_state import ExtendedState
 from procgen_wrapper.procgen_simulator import ProcGenSimulator
 
 
@@ -16,29 +15,19 @@ class NMCTS(PlannerBase):
     def __init__(self, simulator: ProcGenSimulator, nn_model_path: str):
         super().__init__(simulator, nn_model_path, UCTNode)
 
-    def _search(self,
-                root_state: ExtendedState,
-                max_iterations: int) -> UCTNode:
-
-        self._root_node = self._node_type(state=root_state)
-        self._simulator.reset()
-        self._simulator.set_raw_state(root_state.raw_state)
-
-        iter_counter = 0
-
-        while iter_counter < max_iterations:
-            # Perform selection and expansion stage of MCTS
-            node = self._select_and_expand(self._root_node)
-
-            # Perform backup stage of MCTS
-            self._backup(node)
-
-            iter_counter += 1
-
-        return self._root_node
-
     def _commit_action(self, root_node: UCTNode) -> ProcgenAction:
-        pass
+        actions = root_node.available_actions
+
+        # in case we have un-explored actions at the root, add their predicted Q(s,a)
+        qsas = dict(zip(actions, list(root_node.predicted_qsa)))
+        qsas.update(root_node.q_sa)
+
+        if Config().softmax_action_commitment:
+            qsa_values = np.array([qsas[a] for a in actions])
+            chosen_idx = self._sample_best_action(qsa_values)
+            return actions[chosen_idx]
+
+        return sorted(actions, key=lambda k: qsas[k], reverse=True)[0]
 
     def _select(self, node: UCTNode) -> ProcgenAction:
         """
@@ -188,4 +177,4 @@ if __name__ == '__main__':
     model_path = '../neural_network/models/Maze/model_1/ProcgenModule.bin'
     planner = NMCTS(simulator=simulator, nn_model_path=model_path)
     search_iterations = 100
-    root_node = planner.plan(init_state, search_budget=search_iterations)  # TODO
+    action = planner.plan(init_state, search_budget=search_iterations)

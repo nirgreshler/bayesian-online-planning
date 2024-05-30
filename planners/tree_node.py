@@ -77,11 +77,3 @@ class TreeNode:
             .format(len(optional_actions), child)
         action = optional_actions[0]
         return action
-
-    def get_sorted_actions(self) -> List[ProcgenAction]:
-        """
-        Retrieves the best action according to some marginalization type. Current supported options are maximum number
-        of visits (MaxN) and maximum cumulative value MaxN.
-        :return:
-        """
-        raise NotImplementedError()

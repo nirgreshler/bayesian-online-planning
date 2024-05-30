@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -52,15 +52,3 @@ class UCTNode(TreeNode):
         super().add_child(action=action, node=node)
         self._rewards[action] = reward
         self._q_sa[action] = INITIAL_QSA_VALUE
-
-    def get_sorted_actions(self) -> List[ProcgenAction]:
-        """
-        Retrieves the best action according to some marginalization type. Current supported options are maximum number
-        of visits (MaxN) and maximum cumulative value MaxN.
-        :param also_unexplored: whether to sort by the NN prediction or by the measured qsa till now.
-        :return:
-        """
-        actions = self.available_actions
-        qsas = dict(zip(actions, list(self.predicted_qsa)))
-        qsas.update(self.q_sa)
-        return sorted(actions, key=lambda k: qsas[k], reverse=True)

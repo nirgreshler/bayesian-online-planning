@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Type
 
+import numpy as np
+
+from config.config import Config
 from neural_network.procgen_module import ProcgenModule
 from planners.tree_node import TreeNode
 from procgen_wrapper.action_space import ProcgenAction
@@ -33,14 +36,28 @@ class PlannerBase(ABC):
              root_state: ExtendedState,
              search_budget: int) -> ProcgenAction:
         root_node = self._search(root_state, search_budget)
-        return root_node  # TODO
-        # return self._commit_action(root_node)
+        return self._commit_action(root_node)
 
-    @abstractmethod
     def _search(self,
                 root_state: ExtendedState,
                 max_iterations: int) -> TreeNode:
-        raise NotImplementedError
+
+        self._root_node = self._node_type(state=root_state)
+        self._simulator.reset()
+        self._simulator.set_raw_state(root_state.raw_state)
+
+        iter_counter = 0
+
+        while iter_counter < max_iterations:
+            # Perform selection and expansion stage of MCTS
+            node = self._select_and_expand(self._root_node)
+
+            # Perform backup stage of MCTS
+            self._backup(node)
+
+            iter_counter += 1
+
+        return self._root_node
 
     def _select_and_expand(self, node: TreeNode) -> TreeNode:
         """
@@ -87,4 +104,16 @@ class PlannerBase(ABC):
 
     @abstractmethod
     def _commit_action(self, root_node: TreeNode) -> ProcgenAction:
-        raise NotImplementedError
+        raise NotImplementedError  # TODO test this for both planners
+
+    def _sample_best_action(self, qsa_values: np.ndarray) -> int:
+        shifted_qsa_values = qsa_values - np.max(qsa_values)
+        scaled_shifted_qsa_values = shifted_qsa_values / Config().action_commitment_softmax_temperature
+        # When using fp32 np.exp(-89.) causes underflow errors, this is used to avoid this underflow
+        # since the exp_qsa_values are divided by their sum, which can be larger than 1, we use a value of -80
+        # which provides enough margin even if their sum is 1500 (i.e 1500 actions with similar qsa).
+        scaled_shifted_qsa_values = np.clip(scaled_shifted_qsa_values.astype(np.float32), a_min=-80., a_max=0.)
+        exp_qsa_values = np.exp(scaled_shifted_qsa_values)
+        action_probs = exp_qsa_values / np.sum(exp_qsa_values)
+        return np.random.choice(np.arange(len(action_probs)), p=action_probs)
+
