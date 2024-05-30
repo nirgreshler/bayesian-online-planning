@@ -32,26 +32,6 @@ class TreeNode:
     def children(self: 'TreeNode') -> List['TreeNode']:
         return list(self._children.values())
 
-    # @property
-    # def mdp_experience(self) -> MDPExperience:
-    #     """
-    #     Returns the MDP experience from root, i.e. a list of states and actions.
-    # 
-    #     :return:
-    #     """
-    # 
-    #     if self._mdp_experience is not None:
-    #         return self._mdp_experience
-    # 
-    #     if self.parent is None:
-    #         self._mdp_experience = MDPExperience([self.state], [])
-    #     else:
-    #         leading_action = self.parent.get_action_leading_to_child(self)
-    #         self._mdp_experience = self.parent.mdp_experience + \
-    #                                MDPExperience([self.parent.state, self.state], [leading_action])
-    # 
-    #     return self._mdp_experience
-
     @property
     def is_terminal_state(self) -> bool:
         return self._is_terminal_state
@@ -97,26 +77,6 @@ class TreeNode:
             .format(len(optional_actions), child)
         action = optional_actions[0]
         return action
-
-    # @property
-    # def action_leading_to_self(self) -> Optional[ProcgenAction]:
-    #     if not self._parent:
-    #         return None
-    #
-    #     optional_actions = [action for action, c in self.parent._children.items() if c == self]
-    #     num_actions = len(optional_actions)
-    #     assert num_actions == 1, f"{num_actions} actions found leading to self, while this has to be 1"
-    #     action = optional_actions[0]
-    #     return action
-
-    # def print_children_data(self):
-    #     strings = []
-    #     for action, child_node in self._children.items():
-    #         strings.append("Action {} : {}".format(action, child_node))
-    #
-    #     strings = sorted(strings)
-    #     for s in strings:
-    #         print(s)
 
     def get_sorted_actions(self) -> List[ProcgenAction]:
         """

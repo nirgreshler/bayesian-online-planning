@@ -1,11 +1,10 @@
 import math
-from typing import Optional, List, Type
+from typing import Optional, List
 
 import numpy as np
 import torch
 
 from config.config import Config
-from neural_network.procgen_module import ProcgenModule
 from planners.interface import PlannerBase
 from planners.uct_node import UCTNode
 from procgen_wrapper.action_space import ProcgenAction

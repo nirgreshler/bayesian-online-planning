@@ -2,15 +2,17 @@ from typing import List
 
 import numpy as np
 import torch
+from config.config import Config
 
 from planners.buct_node import BUCTNode
 from planners.interface import PlannerBase
 from procgen_wrapper.action_space import ProcgenAction
 from procgen_wrapper.extended_state import ExtendedState
 from procgen_wrapper.procgen_simulator import ProcGenSimulator
-from utils.distribution import ScalarDistribution, DistributionTransformationUtils
+from utils.distribution import ScalarDistribution, DistributionTransformationUtils, MIN_STD
 
 APPROXIMATE_GAUSSIAN_PERCENTILE = True  # True if to approximate the percentile calculation in the select step
+MAX_NODE_VISITS = 150
 
 
 class BTS(PlannerBase):
@@ -36,10 +38,6 @@ class BTS(PlannerBase):
         self._simulator.set_raw_state(root_state.raw_state)
 
         iter_counter = 0
-        self._root_node.num_visits = 1  # TODO is this needed?
-
-        # if Config().mcts.bayesian_uct.reproducible_thompson_sampling:
-        #     self._prng = np.random.RandomState(seed=0)
 
         while iter_counter < max_iterations:
 
@@ -72,11 +70,7 @@ class BTS(PlannerBase):
     def _select_action_to_explore(self, node: BUCTNode, actions: List[ProcgenAction]) -> ProcgenAction:
         # Select action to explore according to the Pth percentile of the Qsa
         percentile = self._calculate_node_exploration_percentile(node=node)
-        exploration_action = self._select_action_by_percentile(node=node,
-                                                               actions=actions,
-                                                               percentile=percentile,
-                                                               # TODO remove use_max_distribution_for_selection
-                                                               use_max_distribution_for_selection=True)
+        exploration_action = self._select_action_by_percentile(node=node, actions=actions, percentile=percentile)
 
         return exploration_action
 
@@ -87,7 +81,7 @@ class BTS(PlannerBase):
         """
 
         # If we expanded a new node we should update posteriors, otherwise only the number of visits should be updated
-        should_update_posteriors = (node.num_visits == 0)
+        should_update_posteriors = node.num_visits == 0
 
         # Propagate new information in the upwards in the tree
         while node.parent is not None:
@@ -149,9 +143,6 @@ class BTS(PlannerBase):
         :param node: the node to calculate its new value posterior
         :return: the new value posterior of the node
         """
-        # In case this is a new expanded node, calculate its value prior or alternatively its action-value priors
-        # if node.num_visits == 0:  # TODO: we can remove this if we assume that calculate_value_posterior ran before.
-        #     self._generate_value_prior(node=node)
 
         # In case we have only information on the value prior, the value posterior is the value prior
         if len(node.qsa_posterior_max) == 0:
@@ -203,8 +194,7 @@ class BTS(PlannerBase):
 
             qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
             qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
-            # TODO: is it necessary? Having zero here causes CDF non-monotonic bin values
-            qsa_std = np.maximum(qsa_std, 0.01)
+            qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
 
             # Create distributions per action
             # TODO make DistributionTransformationUtils static?
@@ -224,45 +214,29 @@ class BTS(PlannerBase):
         :param node: the node
         :return: the exploration percentile
         """
-        # TODO should we keep all these percentile calculation methods?
-        # if Config().mcts.bayesian_uct.select_action_to_explore_by_simple_percentile:
-        #     return 1. - Config().mcts.bayesian_uct.select_percentile_init / node.num_visits
-        # elif Config().mcts.bayesian_uct.select_action_to_explore_by_simple_percentile_sqrt:
-        #     return 1. - Config().mcts.bayesian_uct.select_percentile_init / np.sqrt(node.num_visits)
-        # elif Config().mcts.bayesian_uct.select_action_to_explore_by_simple_percentile_sqrd:
-        #     return 1. - Config().mcts.bayesian_uct.select_percentile_init / (node.num_visits**2)
-        # This "min" is to avoid underflow in the exponent
-        num_visits = min(node.num_visits, 150)  # TODO make constant
+        num_visits = min(node.num_visits, MAX_NODE_VISITS)
+        return 1. - (1. - Config.select_percentile_init) * np.exp(-(num_visits - 1.) / Config.select_percentile_scale)
 
-        # TODO make config?
-        select_percentile_init = 0.5  # the percentile by which an action is selected in the first visit of a node.
-        # Relevant only when select_action_to_explore_by_percentile is True.
-        select_percentile_scale = 3.  # the percentile by which an action is selected depends on the number of visits of
-        # the node which is normalized by this number. Relevant only when select_action_to_explore_by_percentile is True.
-
-        return 1. - (1. - select_percentile_init) * np.exp(-(num_visits - 1.) / select_percentile_scale)
-
-    def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction],
-                                     percentile: float, use_max_distribution_for_selection: bool = False) -> ProcgenAction:
+    def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction], percentile: float) \
+            -> ProcgenAction:
         """
         Select the action to explore which has the highest Q(s,a) percentile
         :param node: the node to choose an action from
         :param actions: list of actions to choose from
         :param percentile: the percentile
-        :param use_max_distribution_for_selection: True if we use the max distribution, False if we take the best arm distribution
         :return: the action which has the highest Q(s,a) percentile
         """
-        posteriors = node.qsa_posterior_max if use_max_distribution_for_selection else node.qsa_posterior
+
         if APPROXIMATE_GAUSSIAN_PERCENTILE:
             # Calculate approximately assuming the posterior Q(s,a) are Gaussian
-            means = np.array([posteriors[action].expectation for action in actions])
-            stds = np.array([posteriors[action].std for action in actions])
+            means = np.array([node.qsa_posterior_max[action].expectation for action in actions])
+            stds = np.array([node.qsa_posterior_max[action].std for action in actions])
             percentile_values = self._transform_utils.calculate_approximate_percentile_for_gaussian(means=means,
                                                                                                     stds=stds,
                                                                                                     percentile=percentile)
         else:
             # Calculate exactly by the inverse CDF
-            percentile_values = np.array([posteriors[action].interpolate_inverse_cdf(percentile) for action in actions])
+            percentile_values = np.array([node.qsa_posterior_max[action].interpolate_inverse_cdf(percentile) for action in actions])
 
         return actions[np.argmax(percentile_values)]
 
@@ -275,7 +249,7 @@ class BTS(PlannerBase):
 
             if node.is_terminal_state:
                 # This mode is being used in offline analysis
-                node.value_prior = self._transform_utils.create_gaussian_distribution(mean=0., std=1e-3)  # TODO make constant
+                node.value_prior = self._transform_utils.create_gaussian_distribution(mean=0., std=MIN_STD)
 
             else:
                 # Use neural network to get value prior
@@ -285,8 +259,7 @@ class BTS(PlannerBase):
 
                 qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
                 qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
-                # TODO: is it necessary? Having zero here causes CDF non-monotonic bin values
-                qsa_std = np.maximum(qsa_std, 0.01)
+                qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
 
                 # Create distributions per action
                 # TODO make DistributionTransformationUtils static?

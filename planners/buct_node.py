@@ -30,6 +30,10 @@ class BUCTNode(TreeNode):
         self._value_posterior: Optional[ScalarDistribution] = None
         self._value_posterior_max: Optional[ScalarDistribution] = None
 
+        if parent is None:
+            # Initialize the root node with a single visit
+            self._num_visits = 1
+
     @property
     def rewards(self) -> Dict[ProcgenAction, float]:
         """

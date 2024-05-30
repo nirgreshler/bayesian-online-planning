@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.stats import norm
 
-MIN_VAR = 1e-3
+MIN_STD = 1e-3
 
 BIN_INDEX = 0       # Index of the bins in returned distribution
 VALUE_INDEX = 0     # Index of values in returned distribution
@@ -81,7 +81,7 @@ class ScalarDistribution:
             bins_center_values = (bins_values[:-1] + bins_values[1:]) / 2.
             var = np.sum(bins_center_values * bins_center_values * pdf_values[1:] * np.diff(bins_values)) - \
                   self.expectation * self.expectation
-            var = max(var, MIN_VAR)
+            var = max(var, MIN_STD)
             self._std = np.sqrt(var)
         return self._std
 
