@@ -70,7 +70,8 @@ class BTS(PlannerBase):
     def _select_action_to_explore(self, node: BUCTNode, actions: List[ProcgenAction]) -> ProcgenAction:
         # Select action to explore according to the Pth percentile of the Qsa
         percentile = self._calculate_node_exploration_percentile(node=node)
-        exploration_action = self._select_action_by_percentile(node=node, actions=actions, percentile=percentile)
+        exploration_action = self._select_action_by_percentile(node=node, actions=actions, percentile=percentile,
+                                                               use_max_distribution_for_selection=True)
 
         return exploration_action
 
@@ -127,9 +128,10 @@ class BTS(PlannerBase):
             return node.value_prior
 
         # Calculate the value distribution stems from the tree
-        # Select action to exploit according to argmax{Q(s,a)}
-        means = np.array([node.qsa_posterior[action].expectation for action in node.available_actions])
-        exploitation_action = node.available_actions[np.argmax(means)]
+        # Select action to exploit according to argmax{mean Q(s,a)}
+        exploitation_action = self._select_action_by_percentile(node=node,
+                                                                actions=node.available_actions,
+                                                                percentile=0.5)
 
         # the value distribution stems from the tree is the distribution of the Q(s,a) of the exploited action
         value_tree_distribution = node.qsa_posterior[exploitation_action]
@@ -217,8 +219,8 @@ class BTS(PlannerBase):
         num_visits = min(node.num_visits, MAX_NODE_VISITS)
         return 1. - (1. - Config.select_percentile_init) * np.exp(-(num_visits - 1.) / Config.select_percentile_scale)
 
-    def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction], percentile: float) \
-            -> ProcgenAction:
+    def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction], percentile: float,
+                                     use_max_distribution_for_selection: bool = False) -> ProcgenAction:
         """
         Select the action to explore which has the highest Q(s,a) percentile
         :param node: the node to choose an action from
@@ -227,16 +229,17 @@ class BTS(PlannerBase):
         :return: the action which has the highest Q(s,a) percentile
         """
 
+        posteriors = node.qsa_posterior_max if use_max_distribution_for_selection else node.qsa_posterior
         if APPROXIMATE_GAUSSIAN_PERCENTILE:
             # Calculate approximately assuming the posterior Q(s,a) are Gaussian
-            means = np.array([node.qsa_posterior_max[action].expectation for action in actions])
-            stds = np.array([node.qsa_posterior_max[action].std for action in actions])
+            means = np.array([posteriors[action].expectation for action in actions])
+            stds = np.array([posteriors[action].std for action in actions])
             percentile_values = self._transform_utils.calculate_approximate_percentile_for_gaussian(means=means,
                                                                                                     stds=stds,
                                                                                                     percentile=percentile)
         else:
             # Calculate exactly by the inverse CDF
-            percentile_values = np.array([node.qsa_posterior_max[action].interpolate_inverse_cdf(percentile) for action in actions])
+            percentile_values = np.array([posteriors[action].interpolate_inverse_cdf(percentile) for action in actions])
 
         return actions[np.argmax(percentile_values)]
 

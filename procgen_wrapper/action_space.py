@@ -5,7 +5,7 @@ class ProcgenAction(Enum):
     pass
 
 
-class MazesAction(ProcgenAction):
+class MazeAction(ProcgenAction):
     Up = 5
     Left = 1
     Down = 3

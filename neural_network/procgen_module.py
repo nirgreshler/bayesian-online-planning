@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from neural_network.impala import ImpalaCNN
-from procgen_wrapper.action_space import LeaperAction, MazesAction
+from procgen_wrapper.action_space import LeaperAction, MazeAction
 
 
 class Module(torch.nn.Module):
@@ -30,7 +30,7 @@ class ProcgenModule(torch.nn.Module):
         if env_name == 'leaper':
             ACTION_SPACE_SIZE = len(LeaperAction)
         else:
-            ACTION_SPACE_SIZE = len(MazesAction)
+            ACTION_SPACE_SIZE = len(MazeAction)
 
         self.qsa_network = Module(ImpalaCNN([16, 32, 32]), 'backbone')
         self.mean_head = Module(nn.Sequential(OrderedDict([

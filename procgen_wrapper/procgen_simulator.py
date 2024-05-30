@@ -9,7 +9,7 @@ from baselines.common.vec_env import (
 from matplotlib import pyplot as plt
 from procgen import ProcgenEnv
 
-from procgen_wrapper.action_space import LeaperAction, MazesAction, ProcgenAction
+from procgen_wrapper.action_space import LeaperAction, MazeAction, ProcgenAction
 from procgen_wrapper.extended_state import ExtendedState
 
 MAX_SIMULATOR_STEPS = {'maze': 500,  # after this number of step, the simulator creates a new sample
@@ -119,7 +119,7 @@ class ProcGenSimulator:
         if self.env_name == 'leaper':
             return [e for e in LeaperAction]
         else:
-            return [e for e in MazesAction]
+            return [e for e in MazeAction]
 
     def get_discount_factor(self) -> float:
         return 1.
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     # Perform some actions
     state = initial_state
-    for a in [MazesAction.Up, MazesAction.Right, MazesAction.Right, MazesAction.Up]:
+    for a in [MazeAction.Up, MazeAction.Right, MazeAction.Right, MazeAction.Up]:
         state, _, _, _ = simulator.step(state, a.value)
 
     # Render the initial and final state

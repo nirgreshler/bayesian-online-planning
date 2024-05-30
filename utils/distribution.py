@@ -173,6 +173,8 @@ class ScalarDistribution:
     def __str__(self):
         return f"ScalarDistribution: (Expectation: {self.expectation}, STD: {self.std})"
 
+    def __repr__(self):
+        return self.__str__()
 
 class DistributionTransformationUtils:
     """
