@@ -164,17 +164,7 @@ class BTS(PlannerBase):
         """
         if len(node.qsa_prior) == 0:
             # Use neural network to get Q(s,a) prior
-            nn_input = torch.from_numpy(np.reshape(node.state.observation, (3, 64, 64))).float() / 255.
-            qsa_mean, qsa_std = self._nn.forward(nn_input)
-
-            qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
-            qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
-            qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
-
-            # Create distributions per action
-            # TODO make DistributionTransformationUtils static?
-            distributions = [DistributionTransformationUtils().create_gaussian_distribution(qsa_mean[i], qsa_std[i])
-                             for i in range(len(qsa_mean))]
+            distributions = self._neural_network_predict(node.state.observation)
 
             # Assign Q(s,a) priors into the node
             for action, distribution in zip(node.available_actions, distributions):
@@ -219,22 +209,23 @@ class BTS(PlannerBase):
 
             else:
                 # Use neural network to get value prior
-                # TODO this code is repeated
-                nn_input = torch.from_numpy(np.reshape(node.state.observation, (3, 64, 64))).float() / 255.
-                qsa_mean, qsa_std = self._nn.forward(nn_input)
-
-                qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
-                qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
-                qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
-
-                # Create distributions per action
-                # TODO make DistributionTransformationUtils static?
-                distributions = [DistributionTransformationUtils().create_gaussian_distribution(qsa_mean[i], qsa_std[i])
-                                 for i in range(len(qsa_mean))]
-
+                distributions = self._neural_network_predict(node.state.observation)
                 node.value_prior = distributions[np.argmax([dist.expectation for dist in distributions])]
 
             node.value_posterior = node.value_prior  # when the prior is modified, the posterior is initialized with the prior
+
+    def _neural_network_predict(self, observation: np.ndarray) -> List[ScalarDistribution]:
+        # Use neural network to get Q(s,a) prior
+        nn_input = torch.from_numpy(np.reshape(observation, (3, 64, 64))).float() / 255.
+        qsa_mean, qsa_std = self._nn.forward(nn_input)
+
+        qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
+        qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
+        qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
+
+        # Create distributions per action
+        return [self._transform_utils.create_gaussian_distribution(qsa_mean[i], qsa_std[i])
+                for i in range(len(qsa_mean))]
 
     @classmethod
     def _calculate_node_exploration_percentile(cls, node: BUCTNode) -> float:
