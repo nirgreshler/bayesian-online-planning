@@ -1,6 +1,8 @@
 import argparse
 import os
 
+import tqdm
+
 from planners.bts import BTS
 from planners.nmcts import NMCTS
 from planners.tsts import TSTS
@@ -60,6 +62,8 @@ def get_planner(planner_name: str, simulator: ProcGenSimulator, nn_model_path: s
         return BTS(simulator=simulator, nn_model_path=nn_model_path)
     if planner_name == 'tsts':
         return TSTS(simulator=simulator, nn_model_path=nn_model_path)
+    if planner_name == 'tsts_det':
+        return TSTS(simulator=simulator, nn_model_path=nn_model_path, deterministic=True)
     else:
         raise ValueError(f'Invalid planner name "{planner_name}".')
 
@@ -91,11 +95,10 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
         os.makedirs(results_folder, exist_ok=True)
 
     total_reward = 0
-
-    for step in range(time_steps):
+    for step in tqdm.tqdm(range(time_steps), desc=f'Running online planning on ProcGen {env}', ncols=80):
         if save_env:
             # Render the environment and save to file
-            simulator.render_state(state=next_state, path=os.path.join(results_folder, f'{step}.png'))
+            simulator.render_state(state=next_state, path=os.path.join(results_folder, f'{step}'))
         # Call the planner to get the committed action
         action = planner.plan(next_state, search_budget=args.search_budget)
 
@@ -106,7 +109,13 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
         if next_state.is_solved:
             print(
                 f'{planner_name.upper()} solved {env} seed {seed} in {step} steps ,accumulating reward of {total_reward}.')
-            break
+            return
+
+        if is_terminal:
+            print(f'{planner_name.upper()} reached a terminal state in {env} seed {seed} in {step} steps.')
+            return
+
+    print(f'{planner_name.upper()} failed to solve {env} seed {seed} in {time_steps} steps.')
 
 
 if __name__ == '__main__':

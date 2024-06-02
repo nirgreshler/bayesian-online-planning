@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Type
+from typing import Optional, Type, List
 
 import numpy as np
 
@@ -106,6 +106,15 @@ class PlannerBase(ABC):
     def _commit_action(self, root_node: TreeNode) -> ProcgenAction:
         raise NotImplementedError  # TODO test this for both planners
 
+    def _get_available_actions(self, node: TreeNode) -> List[ProcgenAction]:
+        """
+        Generate the available actions from the node
+        :param node: the node from which the available actions are generated
+        """
+        if node.available_actions is None:
+            node.available_actions = self._simulator.get_available_actions()
+        return node.available_actions
+
     def _sample_best_action(self, qsa_values: np.ndarray) -> int:
         shifted_qsa_values = qsa_values - np.max(qsa_values)
         scaled_shifted_qsa_values = shifted_qsa_values / Config().action_commitment_softmax_temperature
@@ -116,4 +125,3 @@ class PlannerBase(ABC):
         exp_qsa_values = np.exp(scaled_shifted_qsa_values)
         action_probs = exp_qsa_values / np.sum(exp_qsa_values)
         return np.random.choice(np.arange(len(action_probs)), p=action_probs)
-

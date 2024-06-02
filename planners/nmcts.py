@@ -146,11 +146,6 @@ class NMCTS(PlannerBase):
         effective_branching_factor = np.exp(-np.sum(actions_priors * np.log(actions_priors + 1e-12)))
         return Config().pucb_constant * effective_branching_factor * action_exploration_terms
 
-    def _get_available_actions(self, node: UCTNode) -> List[ProcgenAction]:
-        if node.available_actions is None:
-            node.available_actions = self._simulator.get_available_actions()
-        return node.available_actions
-
     def _calculate_predicted_qsa(self, node: UCTNode) -> np.ndarray:
         if node.predicted_qsa is None:
             nn_input = torch.from_numpy(np.reshape(node.state.observation, (3, 64, 64))).float() / 255.

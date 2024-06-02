@@ -55,7 +55,6 @@ class BTS(PlannerBase):
         percentile = self._calculate_node_exploration_percentile(node=node)
         exploration_action = self._select_action_by_percentile(node=node, actions=actions, percentile=percentile,
                                                                use_max_distribution_for_selection=True)
-
         return exploration_action
 
     def _backup(self, node: BUCTNode) -> None:
@@ -158,15 +157,6 @@ class BTS(PlannerBase):
                                                    bias=node.rewards[action],
                                                    scale=discount_factor)
 
-    def _get_available_actions(self, node: BUCTNode) -> List[ProcgenAction]:
-        """
-        Generate the available actions from the node
-        :param node: the node from which the available actions are generated
-        """
-        if node.available_actions is None:
-            node.available_actions = self._simulator.get_available_actions()
-        return node.available_actions
-
     def _generate_qsa_priors(self, node: BUCTNode) -> None:
         """
         Generate the Q(s,a) priors of the node
@@ -191,16 +181,6 @@ class BTS(PlannerBase):
                 node.qsa_prior[action] = distribution
                 node.qsa_posterior[action] = distribution
                 node.qsa_posterior_max[action] = distribution  # when the prior is modified, the posterior is initialized with the prior
-
-    @classmethod
-    def _calculate_node_exploration_percentile(cls, node: BUCTNode) -> float:
-        """
-        Calculate exploration percentile which depends on the number of visits of the node
-        :param node: the node
-        :return: the exploration percentile
-        """
-        num_visits = min(node.num_visits, MAX_NODE_VISITS)
-        return 1. - (1. - Config().select_percentile_init) * np.exp(-(num_visits - 1.) / Config().select_percentile_scale)
 
     def _select_action_by_percentile(self, node: BUCTNode, actions: List[ProcgenAction], percentile: float,
                                      use_max_distribution_for_selection: bool = False) -> ProcgenAction:
@@ -255,6 +235,17 @@ class BTS(PlannerBase):
                 node.value_prior = distributions[np.argmax([dist.expectation for dist in distributions])]
 
             node.value_posterior = node.value_prior  # when the prior is modified, the posterior is initialized with the prior
+
+    @classmethod
+    def _calculate_node_exploration_percentile(cls, node: BUCTNode) -> float:
+        """
+        Calculate exploration percentile which depends on the number of visits of the node
+        :param node: the node
+        :return: the exploration percentile
+        """
+        num_visits = min(node.num_visits, MAX_NODE_VISITS)
+        return 1. - (1. - Config().select_percentile_init) * np.exp(
+            -(num_visits - 1.) / Config().select_percentile_scale)
 
 
 if __name__ == '__main__':
