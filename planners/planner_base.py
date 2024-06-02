@@ -90,7 +90,7 @@ class PlannerBase(ABC):
         :param action: the action
         :return: the generated child node
         """
-        next_state, reward, is_terminal_state, infos = self._simulator.step(state=node.state, action=action.value)
+        next_state, reward, is_terminal_state, infos = self._simulator.step(state=node.state, action=action)
 
         next_node = self._node_type(state=next_state, parent=node, is_terminal_state=is_terminal_state)
 

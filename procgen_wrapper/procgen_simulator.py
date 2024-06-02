@@ -37,7 +37,7 @@ class ProcGenSimulator:
         self.set_raw_state(state.raw_state)
 
         for _ in range(self._num_env_steps):
-            obs, rews, dones, infos = self.venv.step(np.array([action]))
+            obs, rews, dones, infos = self.venv.step(np.array([action.value]))
             if dones[0]:
                 break
 

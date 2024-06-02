@@ -11,6 +11,6 @@ class Config:
     select_percentile_scale = 3.  # the percentile by which an action is selected depends on the number of visits of
     # the node which is normalized by this number. Relevant only when select_action_to_explore_by_percentile is True.
 
-    softmax_action_commitment = True
+    softmax_action_commitment = False
     action_commitment_percentile = 0.5
     action_commitment_softmax_temperature = 2.
