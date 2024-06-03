@@ -1,9 +1,9 @@
-numpy~=1.20.4
+numpy~=1.20.3
 typing~=3.7.4.3
-scipy~=1.5.5
+scipy~=1.5.4
 dataclasses~=0.6
-torch~=1.9.1+git880c811
+torch~=1.9.1
 enum34~=1.1.10
-baselines~=0.1.6
+baselines~=0.1.5
 matplotlib~=3.5.2
 procgen~=0.10.7
