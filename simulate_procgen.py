@@ -112,14 +112,17 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
 
         if next_state.is_solved:
             print(
-                f'{planner_name.upper()} solved {env} seed {seed} in {step} steps, accumulating reward of {total_reward}.')
+                f'\n{planner_name.upper()} solved {env} seed {seed} in {step} steps, accumulating reward of {total_reward}.')
             return
 
         if is_terminal:
-            print(f'{planner_name.upper()} reached a terminal state in {env} seed {seed} in {step} steps.')
+            print(f'\n{planner_name.upper()} reached a terminal state in {env} seed {seed} in {step} steps.')
             return
 
-    print(f'{planner_name.upper()} failed to solve {env} seed {seed} in {time_steps} steps.')
+    print(f'{planner_name.upper()} failed to solve {env} seed {seed} in {time_steps} time steps.')
+
+    if save_env:
+        print(f'Results saved in {results_folder}.')
 
 
 if __name__ == '__main__':
