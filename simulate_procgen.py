@@ -95,7 +95,7 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
     save_env = False
     if results_folder:
         save_env = True
-        results_folder = os.path.join(results_folder, f'{args.env}', f'{planner_name}', f'seed_{seed}')
+        results_folder = os.path.join(results_folder, f'{args.env}', f'{planner_name}_{args.search_budget}', f'seed_{seed}')
         os.makedirs(results_folder, exist_ok=True)
 
     total_reward = 0
