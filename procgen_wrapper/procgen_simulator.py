@@ -15,8 +15,15 @@ from procgen_wrapper.extended_state import ExtendedState
 MAX_SIMULATOR_STEPS = {'maze': 500,  # after this number of step, the simulator creates a new sample
                        'leaper': 500}  # TODO this is hard-coded copied from ProcGen's timeout values
 
+MAZE_REWARD = 10.
+MAZE_STEP_PENALTY = 1.
 
-class ProcGenSimulator:
+LEAPER_UP_PENALTY = -0.1
+LEAPER_STEP_PENALTY = -0.2
+LEAPER_REWARD = 10.
+
+
+class ProcgenSimulator:
     def __init__(self, num_envs=1, num_levels=0, start_level=0, distribution_mode='easy',
                  use_backgrounds=False, restrict_themes=True, env_name: Optional[str] = None,
                  rand_seed: Optional[int] = None):
@@ -51,17 +58,17 @@ class ProcGenSimulator:
         is_terminal = dones[0] or (depth == self.max_simulator_steps)
         reward_modification = 0.
         if self.env_name == 'maze':
-            reward_modification = -.1
+            reward_modification = -1.
         elif self.env_name == 'leaper':
-            reward_modification = leaper_up_penalty if action == LeaperAction.Up.value else leaper_step_penalty
+            reward_modification = leaper_up_penalty if action == LeaperAction.Up else leaper_step_penalty
             # if is_terminal and rews[0] < 9.:
             #     reward_modification += Config().procgen.leaper_crash_penalty
         current_reward = rews[0] + reward_modification
         total_reward = state.total_reward + current_reward
         is_solved = is_terminal and current_reward >= 9.
-        # new_agent_y = self.get_next_agent_y(state.agent_y, action)
+        new_agent_y = self.get_next_agent_y(state.agent_y, action)
         return ExtendedState(observation=obs[0], raw_state=new_raw_state, is_terminal=is_terminal, is_solved=is_solved,
-                             depth=depth, total_reward=total_reward, agent_y=0), \
+                             depth=depth, total_reward=total_reward, agent_y=new_agent_y), \
             current_reward, \
             is_terminal, \
             infos[0]
@@ -112,7 +119,7 @@ class ProcGenSimulator:
         self.set_raw_state(orig_state)
         return info
 
-    def get_available_actions(self):
+    def get_actions(self):
         """
         Extracts list of available actions per given state
         """
@@ -124,10 +131,19 @@ class ProcGenSimulator:
     def get_discount_factor(self) -> float:
         return 1.
 
+    @staticmethod
+    def get_next_agent_y(state_agent_y: int, action: ProcgenAction):
+        if action == LeaperAction.Up:
+            return state_agent_y + 1
+        elif action == LeaperAction.Down:
+            return max(0, state_agent_y - 1)
+        else:
+            return state_agent_y
+
 
 if __name__ == '__main__':
     # Create a simulator and generate a random environment
-    simulator = ProcGenSimulator(env_name='maze', rand_seed=np.random.randint(0, 1000))
+    simulator = ProcgenSimulator(env_name='maze', rand_seed=np.random.randint(0, 1000))
 
     # Reset the simulator
     initial_state = simulator.reset()

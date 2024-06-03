@@ -32,23 +32,6 @@ class UCTNode(TreeNode):
     def predicted_qsa(self, value: np.ndarray):
         self._predicted_qsa = value
 
-    # @property
-    # def predicted_value(self) -> Optional[float]:
-    #     return self._predicted_value
-    #
-    # @predicted_value.setter
-    # def predicted_value(self, value: float):
-    #     self._predicted_value = value
-
-    @property
-    def num_visits(self) -> int:
-        return self._num_visits
-
-    @num_visits.setter
-    def num_visits(self, value):
-        self._num_visits = value
-
     def add_child_with_reward(self: 'UCTNode', action: ProcgenAction, reward: float, node: 'UCTNode') -> None:
-        super().add_child(action=action, node=node)
-        self._rewards[action] = reward
+        super().add_child_with_reward(action=action, reward=reward, node=node)
         self._q_sa[action] = INITIAL_QSA_VALUE

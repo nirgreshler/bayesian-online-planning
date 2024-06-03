@@ -176,6 +176,7 @@ class ScalarDistribution:
     def __repr__(self):
         return self.__str__()
 
+
 class DistributionTransformationUtils:
     """
     Utilities for Bayesian UCT calculations

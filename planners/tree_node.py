@@ -12,7 +12,6 @@ class TreeNode:
         self._state = state
         self._parent = parent
         self._is_terminal_state = is_terminal_state
-        # self._mdp_experience: Optional[MDPExperience] = None
         self._children: Dict[ProcgenAction, 'TreeNode'] = dict()
 
         self._rewards: Dict[ProcgenAction, float] = dict()
@@ -41,7 +40,21 @@ class TreeNode:
         return list(self._children.keys())
 
     @property
-    def available_actions(self) -> Optional[List[ProcgenAction]]:
+    def num_visits(self) -> int:
+        """
+        Return the number of visits of the node
+        """
+        return self._num_visits
+
+    @num_visits.setter
+    def num_visits(self, value: int):
+        """
+        Set the number of visits of the node
+        """
+        self._num_visits = value
+
+    @property
+    def available_actions(self) -> Optional[List[ProcgenAction]]:  # TODO actions
         return self._available_actions
 
     @available_actions.setter

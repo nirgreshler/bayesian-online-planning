@@ -104,20 +104,6 @@ class BUCTNode(TreeNode):
         """
         self._value_posterior_max = value
 
-    @property
-    def num_visits(self) -> int:
-        """
-        Return the number of visits of the node
-        """
-        return self._num_visits
-
-    @num_visits.setter
-    def num_visits(self, value: int):
-        """
-        Set the number of visits of the node
-        """
-        self._num_visits = value
-
     def __str__(self):
         return "Expected value: {:.2f}, STD value {:.2f}, Num visits: {:.2f}".format(self.value_posterior.expectation,
                                                                                      self.value_posterior.std,

@@ -7,15 +7,16 @@ from config.config import Config
 from planners.buct_node import BUCTNode
 from planners.planner_base import PlannerBase
 from procgen_wrapper.action_space import ProcgenAction
-from procgen_wrapper.procgen_simulator import ProcGenSimulator
+from procgen_wrapper.procgen_simulator import ProcgenSimulator
 from utils.distribution import ScalarDistribution, DistributionTransformationUtils, MIN_STD
+from utils.get_gt_qsa import get_gt_qsa
 
 APPROXIMATE_GAUSSIAN_PERCENTILE = True  # True if to approximate the percentile calculation in the select step
 MAX_NODE_VISITS = 150
 
 
 class BTS(PlannerBase):
-    def __init__(self, simulator: ProcGenSimulator, nn_model_path: str):
+    def __init__(self, simulator: ProcgenSimulator, nn_model_path: str):
         super().__init__(simulator, nn_model_path, BUCTNode)
         self._transform_utils = DistributionTransformationUtils()
 
@@ -44,7 +45,7 @@ class BTS(PlannerBase):
         :return: the selected action
         """
         # Generate the available actions and the Qsa priors if needed
-        actions = self._get_available_actions(node=node)
+        actions = self._get_actions(node=node)
         if len(node.qsa_prior) == 0:
             self._generate_qsa_priors(node=node)
 
@@ -164,7 +165,7 @@ class BTS(PlannerBase):
         """
         if len(node.qsa_prior) == 0:
             # Use neural network to get Q(s,a) prior
-            distributions = self._neural_network_predict(node.state.observation)
+            distributions = self._neural_network_predict(node)
 
             # Assign Q(s,a) priors into the node
             for action, distribution in zip(node.available_actions, distributions):
@@ -209,19 +210,25 @@ class BTS(PlannerBase):
 
             else:
                 # Use neural network to get value prior
-                distributions = self._neural_network_predict(node.state.observation)
+                distributions = self._neural_network_predict(node)
                 node.value_prior = distributions[np.argmax([dist.expectation for dist in distributions])]
 
             node.value_posterior = node.value_prior  # when the prior is modified, the posterior is initialized with the prior
 
-    def _neural_network_predict(self, observation: np.ndarray) -> List[ScalarDistribution]:
+    def _neural_network_predict(self, node: BUCTNode) -> List[ScalarDistribution]:
         # Use neural network to get Q(s,a) prior
-        nn_input = torch.from_numpy(np.reshape(observation, (3, 64, 64))).float() / 255.
+        nn_input = torch.from_numpy(np.reshape(node.state.observation, (3, 64, 64))).float() / 255.
         qsa_mean, qsa_std = self._nn.forward(nn_input)
 
         qsa_mean = qsa_mean.detach().cpu().numpy().ravel()
-        qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
-        qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
+        if Config().use_gt_std:
+            # Estimate the std from the GT qsa
+            gt_qsa = [get_gt_qsa(self._simulator, node.state, action) for action in self._simulator.get_actions()]
+            qsa_std = np.abs(qsa_mean - gt_qsa)
+        else:
+            # Extract the std from the NN
+            qsa_std = np.exp(qsa_std.detach().cpu().numpy().ravel())
+            qsa_std = np.maximum(qsa_std, MIN_STD)  # make sure we don't have zero std
 
         # Create distributions per action
         return [self._transform_utils.create_gaussian_distribution(qsa_mean[i], qsa_std[i])
@@ -240,9 +247,9 @@ class BTS(PlannerBase):
 
 
 if __name__ == '__main__':
-    simulator = ProcGenSimulator(env_name='maze', rand_seed=190)
+    simulator = ProcgenSimulator(env_name='maze', rand_seed=190)
     init_state = simulator.reset()
-    model_path = '../neural_network/models/Maze/model_1/ProcgenModule.bin'
+    model_path = '../neural_network/models/Maze/model_1/maze_1.bin'
     planner = BTS(simulator=simulator, nn_model_path=model_path)
     search_iterations = 100
     action = planner.plan(init_state, search_budget=search_iterations)

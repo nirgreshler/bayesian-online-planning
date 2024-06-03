@@ -8,7 +8,7 @@ from neural_network.procgen_module import ProcgenModule
 from planners.tree_node import TreeNode
 from procgen_wrapper.action_space import ProcgenAction
 from procgen_wrapper.extended_state import ExtendedState
-from procgen_wrapper.procgen_simulator import ProcGenSimulator
+from procgen_wrapper.procgen_simulator import ProcgenSimulator
 
 
 class PlannerBase(ABC):
@@ -17,7 +17,7 @@ class PlannerBase(ABC):
 
     """
 
-    def __init__(self, simulator: ProcGenSimulator, nn_model_path: str, node_type: Type):
+    def __init__(self, simulator: ProcgenSimulator, nn_model_path: str, node_type: Type):
         """
         Initialize a search-based planner using a neural network.
 
@@ -106,13 +106,13 @@ class PlannerBase(ABC):
     def _commit_action(self, root_node: TreeNode) -> ProcgenAction:
         raise NotImplementedError  # TODO test this for both planners
 
-    def _get_available_actions(self, node: TreeNode) -> List[ProcgenAction]:
+    def _get_actions(self, node: TreeNode) -> List[ProcgenAction]:
         """
         Generate the available actions from the node
         :param node: the node from which the available actions are generated
         """
         if node.available_actions is None:
-            node.available_actions = self._simulator.get_available_actions()
+            node.available_actions = self._simulator.get_actions()
         return node.available_actions
 
     def _sample_best_action(self, qsa_values: np.ndarray) -> int:

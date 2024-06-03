@@ -6,13 +6,13 @@ from planners.bts import BTS
 from planners.buct_node import BUCTNode
 from procgen_wrapper.action_space import ProcgenAction
 from procgen_wrapper.extended_state import ExtendedState
-from procgen_wrapper.procgen_simulator import ProcGenSimulator
+from procgen_wrapper.procgen_simulator import ProcgenSimulator
 
 APPROXIMATE_GAUSSIAN = True
 
 
 class TSTS(BTS):
-    def __init__(self, simulator: ProcGenSimulator, nn_model_path: str, deterministic: bool = False):
+    def __init__(self, simulator: ProcgenSimulator, nn_model_path: str, deterministic: bool = False):
         """
         If 'deterministic' is True, use a constant seed (this is TSTS_det).
 

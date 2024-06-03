@@ -8,11 +8,11 @@ from config.config import Config
 from planners.planner_base import PlannerBase
 from planners.uct_node import UCTNode
 from procgen_wrapper.action_space import ProcgenAction
-from procgen_wrapper.procgen_simulator import ProcGenSimulator
+from procgen_wrapper.procgen_simulator import ProcgenSimulator
 
 
 class NMCTS(PlannerBase):
-    def __init__(self, simulator: ProcGenSimulator, nn_model_path: str):
+    def __init__(self, simulator: ProcgenSimulator, nn_model_path: str):
         super().__init__(simulator, nn_model_path, UCTNode)
 
     def _commit_action(self, root_node: UCTNode) -> ProcgenAction:
@@ -37,7 +37,7 @@ class NMCTS(PlannerBase):
         """
 
         # Initially, all possible actions are available for exploration
-        available_actions = self._get_available_actions(node)
+        available_actions = self._get_actions(node)
 
         # Get normalized Qsa values
         actions_normalized_values = self._get_actions_qsa(node=node, actions=available_actions)
@@ -163,13 +163,13 @@ class NMCTS(PlannerBase):
         if node.is_terminal_state:
             return 0.
         # we explored this node before, return the max Q(s,a) over its actions
-        return np.max(self._get_actions_qsa(node, self._get_available_actions(node)))
+        return np.max(self._get_actions_qsa(node, self._get_actions(node)))
 
 
 if __name__ == '__main__':
-    simulator = ProcGenSimulator(env_name='maze', rand_seed=1)
+    simulator = ProcgenSimulator(env_name='maze', rand_seed=1)
     init_state = simulator.reset()
-    model_path = '../neural_network/models/Maze/model_1/ProcgenModule.bin'
+    model_path = '../neural_network/models/Maze/model_1/maze_1.bin'
     planner = NMCTS(simulator=simulator, nn_model_path=model_path)
     search_iterations = 100
     action = planner.plan(init_state, search_budget=search_iterations)

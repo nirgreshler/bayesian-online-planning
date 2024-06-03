@@ -3,10 +3,11 @@ import os
 
 import tqdm
 
+from config.config import Config
 from planners.bts import BTS
 from planners.nmcts import NMCTS
 from planners.tsts import TSTS
-from procgen_wrapper.procgen_simulator import ProcGenSimulator
+from procgen_wrapper.procgen_simulator import ProcgenSimulator
 
 
 def parse_args():
@@ -45,7 +46,7 @@ def parse_args():
     return args
 
 
-def get_planner(planner_name: str, simulator: ProcGenSimulator, nn_model_path: str):
+def get_planner(planner_name: str, simulator: ProcgenSimulator, nn_model_path: str):
     """
     Create a planner based on the given name.
 
@@ -80,7 +81,7 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
     :param results_folder: an optional path to save environment photos.
     """
     # Create a simulator
-    simulator = ProcGenSimulator(env_name=env, rand_seed=seed)
+    simulator = ProcgenSimulator(env_name=env, rand_seed=seed)
 
     # Reset the simulator to retrieve the initial state
     next_state = simulator.reset()

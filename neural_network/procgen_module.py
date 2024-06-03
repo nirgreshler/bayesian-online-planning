@@ -9,7 +9,6 @@ from procgen_wrapper.action_space import LeaperAction, MazeAction
 
 
 class Module(torch.nn.Module):
-    # TODO fix the saved models
     def __init__(self, model:torch.nn.Module, name: str):
         super().__init__()
         self.model = model
@@ -67,6 +66,3 @@ class ProcgenModule(torch.nn.Module):
     def load_model(self, model_path: str, strict: bool = True):
         state_dict = torch.load(model_path, map_location='cpu')
         self.load_state_dict(state_dict=state_dict, strict=strict)
-
-    # def normalization_factory(self, x):  # TODO
-    #   return nn.LayerNorm(x)
