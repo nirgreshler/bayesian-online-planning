@@ -244,12 +244,3 @@ class BTS(PlannerBase):
         num_visits = min(node.num_visits, MAX_NODE_VISITS)
         return 1. - (1. - Config().select_percentile_init) * np.exp(
             -(num_visits - 1.) / Config().select_percentile_scale)
-
-
-if __name__ == '__main__':
-    simulator = ProcgenSimulator(env_name='maze', rand_seed=190)
-    init_state = simulator.reset()
-    model_path = '../neural_network/models/Maze/model_1/maze_1.bin'
-    planner = BTS(simulator=simulator, nn_model_path=model_path)
-    search_iterations = 100
-    action = planner.plan(init_state, search_budget=search_iterations)

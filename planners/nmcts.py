@@ -164,12 +164,3 @@ class NMCTS(PlannerBase):
             return 0.
         # we explored this node before, return the max Q(s,a) over its actions
         return np.max(self._get_actions_qsa(node, self._get_actions(node)))
-
-
-if __name__ == '__main__':
-    simulator = ProcgenSimulator(env_name='maze', rand_seed=1)
-    init_state = simulator.reset()
-    model_path = '../neural_network/models/Maze/model_1/maze_1.bin'
-    planner = NMCTS(simulator=simulator, nn_model_path=model_path)
-    search_iterations = 100
-    action = planner.plan(init_state, search_budget=search_iterations)
