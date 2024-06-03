@@ -14,7 +14,15 @@ Empirically, we demonstrate that on the ProcGen Maze and Leaper environments, wh
 In addition, we investigate whether popular uncertainty estimation methods are accurate enough to yield significant gains in planning.
 
 ## Installation
-To use this code:
+The code was tested on Python 3.8. Later versions may also work.
+
+Install `baselines` from source:
+```bash
+git clone https://github.com/openai/baselines && cd baselines
+python setup.py install
+```
+
+Install requirements:
 ```bash
 git clone https://github.com/nirgreshler/bayesian-online-planning.git
 cd bayesian-online-planning
