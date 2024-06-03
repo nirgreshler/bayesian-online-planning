@@ -40,6 +40,9 @@ To run planning on a single environment instance, run the `simulate_procgen.py` 
 - `--search-budget` (optional): the number of search iterations for the planning algorithm (default: 100)
 - `--results-folder` (optional): a path to save images of the environment state after each time step.
 
+### Example
+`python simulate_procgen.py -e maze -p nmcts`
+
 ## Changing Configuration Parameters
 Some parameters used by the planner can be modified in the dataclass `Config` in `config\config.py`.
 The usage of each parameter is documented there.
