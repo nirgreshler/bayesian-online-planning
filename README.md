@@ -13,6 +13,15 @@ In addition we propose a variant of the Bayes-UCB method applied to trees.
 Empirically, we demonstrate that on the ProcGen Maze and Leaper environments, when the uncertainty estimates are accurate but the neural network output is inaccurate, our Bayesian approach searches the tree much more effectively. 
 In addition, we investigate whether popular uncertainty estimation methods are accurate enough to yield significant gains in planning.
 
+## Installation
+To use this code:
+```bash
+git clone https://github.com/nirgreshler/bayesian-online-planning.git
+cd bayesian-online-planning
+pip install -r requirements.txt
+```
+
+
 ## Simulating Procgen Environment
 We provide the code to reproduce the results presented in the paper, on both Maze and Leaper environments from the Procgen benchmark (https://openai.com/index/procgen-benchmark/).
 To run planning on a single environment instance, run the `simulate_procgen.py` script with the following arguments:
