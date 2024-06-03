@@ -20,7 +20,7 @@ def parse_args():
                         choices=['maze', 'leaper'], type=str, required=True)
     parser.add_argument('-p', '--planner', help='The name of the planner, one of [nmcts, bts, tsts, tsts_det].',
                         choices=['nmcts', 'bts', 'tsts', 'tsts_det'], type=str, required=True)
-    parser.add_argument('-m', '--model-path', help='A path to load the neural network model.', type=str, required=True)
+    parser.add_argument('-m', '--model-path', help='A path to load the neural network model.', type=str)
     parser.add_argument('-s', '--seed', help='A seed for the ProcGen environment, default is 0', type=int, default=0)
     parser.add_argument('-k', '--time-steps', help='Number of close-loop time steps for evaluation, '
                                                    'default for maze is 100 and for leaper is 25.', type=int, default=0)
@@ -36,6 +36,9 @@ def parse_args():
             args.time_steps = 100
         else:
             args.time_steps = 25
+
+    if not args.model_path:
+        args.model_path = os.path.join(os.path.dirname(__file__), 'neural_network', 'models', f'{args.env}_1.bin')
 
     if args.time_steps < 0:
         raise ValueError('Please set a positive number of steps.')
@@ -109,7 +112,7 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
 
         if next_state.is_solved:
             print(
-                f'{planner_name.upper()} solved {env} seed {seed} in {step} steps ,accumulating reward of {total_reward}.')
+                f'{planner_name.upper()} solved {env} seed {seed} in {step} steps, accumulating reward of {total_reward}.')
             return
 
         if is_terminal:

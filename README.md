@@ -18,7 +18,7 @@ We provide the code to reproduce the results presented in the paper, on both Maz
 To run planning on a single environment instance, run the `simulate_procgen.py` script with the following arguments:
 - `--env`: the name of the environment (either `maze` or `leaper`)
 - `--planner`: the name of the planning algorithm (either `nmcts`, `bts`, `tsts` or `tsts_det`)
-- `--model-path`: the path to the neural network model (under neural_network/models)
+- `--model-path` (optional): the path to the neural network model (under neural_network/models). If not provided a default model will be used.
 - `seed` (optional): the seed for the environment (default: 0)
 - `--time-steps` (optional): the number of time steps to run the simulation (default: 100 for maze and 25 for leaper)
 - `--search-budget` (optional): the number of search iterations for the planning algorithm (default: 100)
