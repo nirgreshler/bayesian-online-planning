@@ -15,7 +15,7 @@ def get_maze_gt_qsa(simulator: ProcgenSimulator, state: ExtendedState, action: P
     next_state, reward, is_terminal = simulator.step(state, action)
     if is_terminal:
         return reward
-    next_state_value = MAZE_REWARD + bfs(state, simulator) * MAZE_STEP_PENALTY
+    next_state_value = MAZE_REWARD + bfs(next_state, simulator) * MAZE_STEP_PENALTY
     return float(next_state_value + MAZE_STEP_PENALTY)
 
 
