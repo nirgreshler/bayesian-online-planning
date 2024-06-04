@@ -111,7 +111,7 @@ def successors(state, simulator):
     # Define successors for a state
     states = []
     for a in simulator.get_actions():
-        next_state, _, _, info = simulator.step(state, a)
+        next_state, _, _ = simulator.step(state, a)
         cost = (-LEAPER_UP_PENALTY if a == LeaperAction.Up else -LEAPER_STEP_PENALTY)
         if not next_state.is_terminal or next_state.is_solved:
             states.append((next_state, cost, a))

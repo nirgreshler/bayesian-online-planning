@@ -26,7 +26,7 @@ class BTS(PlannerBase):
         :return: list of the sorted action
         """
         qsas_percentile = {}
-        actions = root_node.available_actions
+        actions = root_node.actions
         if Config().softmax_action_commitment:
             qsa_values = np.array([root_node.qsa_posterior[a].expectation for a in actions])
             chosen_idx = self._sample_best_action(qsa_values)
@@ -113,7 +113,7 @@ class BTS(PlannerBase):
         # Calculate the value distribution stems from the tree
         # Select action to exploit according to argmax{mean Q(s,a)}
         exploitation_action = self._select_action_by_percentile(node=node,
-                                                                actions=node.available_actions,
+                                                                actions=node.actions,
                                                                 percentile=0.5)
 
         # the value distribution stems from the tree is the distribution of the Q(s,a) of the exploited action
@@ -168,7 +168,7 @@ class BTS(PlannerBase):
             distributions = self._neural_network_predict(node)
 
             # Assign Q(s,a) priors into the node
-            for action, distribution in zip(node.available_actions, distributions):
+            for action, distribution in zip(node.actions, distributions):
                 node.qsa_prior[action] = distribution
                 node.qsa_posterior[action] = distribution
                 node.qsa_posterior_max[action] = distribution  # when the prior is modified, the posterior is initialized with the prior

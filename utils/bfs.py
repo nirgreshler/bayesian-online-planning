@@ -38,7 +38,7 @@ def bfs(start_state: ExtendedState, simulator: ProcgenSimulator) -> int:
             visited.add(node)
             # Add unvisited neighbors to the queue
             for a in simulator.get_actions():
-                neighbor_state, _, is_terminal, info = simulator.step(node.state, a)
+                neighbor_state, _, is_terminal = simulator.step(node.state, a)
                 if is_terminal:
                     # Return the number of steps to reach the goal
                     return node.depth + 1

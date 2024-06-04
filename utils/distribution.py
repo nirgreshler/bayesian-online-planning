@@ -10,6 +10,12 @@ BIN_INDEX = 0       # Index of the bins in returned distribution
 VALUE_INDEX = 0     # Index of values in returned distribution
 
 APPROXIMATE_MAX_DISTRIBUTION = True  # True if to calculate the distribution of max{x1, x2, .., xn) by approximating
+DISTRIBUTION_PERCENTILE_RANGE = [0.001, 0.999]  # numeric CDF / PDF are being approximated in this percentile range
+DISTRIBUTION_NUM_BINS = 50  # the number of bins of the numeric CDF / PDF
+FINE_DISTRIBUTION_PERCENTILE_RANGE = [0.001, 0.9999999]  # numeric CDF / PDF are being approximated in this percentile range
+FINE_DISTRIBUTION_NUM_BINS = 1000  # the number of bins of the numeric CDF / PDF
+DISTRIBUTION_NUM_BINS_IN_MAX_DISTRIBUTION_COMPUTATION = 50  # the number of bins being used in the calculation of
+# the distribution of max{x1, x2, .., xn)
 
 
 class ScalarDistribution:
@@ -182,19 +188,14 @@ class DistributionTransformationUtils:
     Utilities for Bayesian UCT calculations
     """
     def __init__(self):
-        # TODO make constants
-        distribution_percentile_range = [0.001, 0.999]  # numeric CDF / PDF are being approximated in this percentile range
-        distribution_num_bins = 50  # the number of bins of the numeric CDF / PDF
-        fine_distribution_percentile_range = [0.001, 0.9999999]  # numeric CDF / PDF are being approximated in this percentile range
-        fine_distribution_num_bins = 1000  # the number of bins of the numeric CDF / PDF
 
         # Create a normal distribution for caching purposes
-        self._normal_distribution = ScalarDistribution.create_normal_distribution(start_percentile=distribution_percentile_range[0],
-                                                                                  stop_percentile=distribution_percentile_range[1],
-                                                                                  num_bins=distribution_num_bins)
-        self._normal_distribution_fine = ScalarDistribution.create_normal_distribution(start_percentile=fine_distribution_percentile_range[0],
-                                                                                       stop_percentile=fine_distribution_percentile_range[1],
-                                                                                       num_bins=fine_distribution_num_bins)
+        self._normal_distribution = ScalarDistribution.create_normal_distribution(start_percentile=DISTRIBUTION_PERCENTILE_RANGE[0],
+                                                                                  stop_percentile=DISTRIBUTION_PERCENTILE_RANGE[1],
+                                                                                  num_bins=DISTRIBUTION_NUM_BINS)
+        self._normal_distribution_fine = ScalarDistribution.create_normal_distribution(start_percentile=FINE_DISTRIBUTION_PERCENTILE_RANGE[0],
+                                                                                       stop_percentile=FINE_DISTRIBUTION_PERCENTILE_RANGE[1],
+                                                                                       num_bins=FINE_DISTRIBUTION_NUM_BINS)
 
     def calculate_max_distribution(self, distributions: List[ScalarDistribution]) -> ScalarDistribution:
         """
@@ -202,13 +203,6 @@ class DistributionTransformationUtils:
         :param distributions: distributions of random variables
         :return: the distribution of the maximum of these random variables
         """
-
-        # TODO make constants
-        distribution_num_bins_in_max_distribution_computation = 50  # the number of bins being used in the calculation of
-        # the distribution of max{x1, x2, .., xn)
-        distribution_percentile_range = [0.001,
-                                         0.999]  # numeric CDF / PDF are being approximated in this percentile range
-        distribution_num_bins = 50  # the number of bins of the numeric CDF / PDF
 
         # Extract data from the distributions
         first_bins_values, last_bins_values, expectations, stds, cdf_interpolators = [], [], [], [], []
@@ -219,12 +213,12 @@ class DistributionTransformationUtils:
             stds.append(dist.std)
             cdf_interpolators.append(dist.interpolate_cdf)
 
-       # Create array of bins for the calculation
-        max_first_bin_value = max(first_bins_values)  # any bin lower than that will have CDF value smaller than Config().mcts.bayesian_uct.distribution_percentile_range[0]
-        max_last_bin_value = max(last_bins_values)  # any bin higher than that will have CDF value larger than Config().mcts.bayesian_uct.distribution_percentile_range[1]
+        # Create array of bins for the calculation
+        max_first_bin_value = max(first_bins_values)  # any bin lower than that will have CDF value smaller than Config().mcts.bayesian_uct.DISTRIBUTION_PERCENTILE_RANGE[0]
+        max_last_bin_value = max(last_bins_values)  # any bin higher than that will have CDF value larger than Config().mcts.bayesian_uct.DISTRIBUTION_PERCENTILE_RANGE[1]
         all_bins_values = np.linspace(start=max_first_bin_value,
                                       stop=max_last_bin_value,
-                                      num=distribution_num_bins_in_max_distribution_computation)
+                                      num=DISTRIBUTION_NUM_BINS_IN_MAX_DISTRIBUTION_COMPUTATION)
 
         # Calculate the CDF values for each distribution in the requested bins
         if APPROXIMATE_MAX_DISTRIBUTION:
@@ -243,9 +237,9 @@ class DistributionTransformationUtils:
         all_cdf_values = ScalarDistribution.normalize_cdf_values(all_cdf_values)
 
         # Calculate the bins for the output distribution
-        min_bin_value = all_bins_values[all_cdf_values.size - 1 - np.argmin(np.abs(all_cdf_values[::-1] - distribution_percentile_range[0]))]
-        max_bin_value = all_bins_values[np.argmin(np.abs(all_cdf_values - distribution_percentile_range[1]))]
-        bins_values = np.linspace(start=min_bin_value, stop=max_bin_value, num=distribution_num_bins)
+        min_bin_value = all_bins_values[all_cdf_values.size - 1 - np.argmin(np.abs(all_cdf_values[::-1] - DISTRIBUTION_PERCENTILE_RANGE[0]))]
+        max_bin_value = all_bins_values[np.argmin(np.abs(all_cdf_values - DISTRIBUTION_PERCENTILE_RANGE[1]))]
+        bins_values = np.linspace(start=min_bin_value, stop=max_bin_value, num=DISTRIBUTION_NUM_BINS)
 
         # Calculate the CDF values for the output distribution
         cdf_interpolator = interp1d(all_bins_values, all_cdf_values, bounds_error=False, fill_value=(0., 1.))

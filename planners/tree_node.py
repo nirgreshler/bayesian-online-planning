@@ -17,7 +17,7 @@ class TreeNode:
         self._rewards: Dict[ProcgenAction, float] = dict()
         self._num_visits = 0
 
-        self._available_actions = None
+        self._actions = None
 
     @property
     def state(self) -> ExtendedState:
@@ -54,12 +54,12 @@ class TreeNode:
         self._num_visits = value
 
     @property
-    def available_actions(self) -> Optional[List[ProcgenAction]]:  # TODO actions
-        return self._available_actions
+    def actions(self) -> Optional[List[ProcgenAction]]:
+        return self._actions
 
-    @available_actions.setter
-    def available_actions(self, value: List[ProcgenAction]) -> None:
-        self._available_actions = value
+    @actions.setter
+    def actions(self, value: List[ProcgenAction]) -> None:
+        self._actions = value
 
     def add_child(self: 'TreeNode', action: ProcgenAction, node: 'TreeNode') -> None:
         assert action not in self._children, 'Action was added to node already'

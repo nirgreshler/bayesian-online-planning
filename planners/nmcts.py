@@ -16,7 +16,7 @@ class NMCTS(PlannerBase):
         super().__init__(simulator, nn_model_path, UCTNode)
 
     def _commit_action(self, root_node: UCTNode) -> ProcgenAction:
-        actions = root_node.available_actions
+        actions = root_node.actions
 
         # in case we have un-explored actions at the root, add their predicted Q(s,a)
         qsas = dict(zip(actions, list(root_node.predicted_qsa)))
@@ -116,7 +116,7 @@ class NMCTS(PlannerBase):
         # Extract Qsa values for given actions
         actions_indices = []
         for action in actions:
-            actions_indices.append(node.available_actions.index(action))
+            actions_indices.append(node.actions.index(action))
         actions_qsa_values = predicted_qsa[actions_indices]
 
         # Convert to prior probabilities

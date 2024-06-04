@@ -27,7 +27,7 @@ class PlannerBase(ABC):
 
         """
         self._simulator = simulator
-        self._nn = ProcgenModule(env_name=simulator.env_name, init_model_path=nn_model_path)
+        self._nn = ProcgenModule(env_name=simulator._env_name, init_model_path=nn_model_path)
 
         self._root_node: Optional[node_type] = None
         self._node_type = node_type
@@ -90,7 +90,7 @@ class PlannerBase(ABC):
         :param action: the action
         :return: the generated child node
         """
-        next_state, reward, is_terminal_state, infos = self._simulator.step(state=node.state, action=action)
+        next_state, reward, is_terminal_state = self._simulator.step(state=node.state, action=action)
 
         next_node = self._node_type(state=next_state, parent=node, is_terminal_state=is_terminal_state)
 
@@ -104,16 +104,16 @@ class PlannerBase(ABC):
 
     @abstractmethod
     def _commit_action(self, root_node: TreeNode) -> ProcgenAction:
-        raise NotImplementedError  # TODO test this for both planners
+        raise NotImplementedError
 
     def _get_actions(self, node: TreeNode) -> List[ProcgenAction]:
         """
         Generate the available actions from the node
         :param node: the node from which the available actions are generated
         """
-        if node.available_actions is None:
-            node.available_actions = self._simulator.get_actions()
-        return node.available_actions
+        if node.actions is None:
+            node.actions = self._simulator.get_actions()
+        return node.actions
 
     def _sample_best_action(self, qsa_values: np.ndarray) -> int:
         shifted_qsa_values = qsa_values - np.max(qsa_values)

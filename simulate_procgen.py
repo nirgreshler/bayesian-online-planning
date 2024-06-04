@@ -107,7 +107,7 @@ def simulate_procgen(env: str, seed: int, planner_name: str, model_path: str, ti
         action = planner.plan(next_state, search_budget=args.search_budget)
 
         # Advance the environment using the committed action
-        next_state, reward, is_terminal, info = simulator.step(next_state, action)
+        next_state, reward, is_terminal = simulator.step(next_state, action)
         total_reward += reward
 
         if next_state.is_solved:
