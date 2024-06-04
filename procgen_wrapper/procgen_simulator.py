@@ -27,7 +27,6 @@ LEAPER_REWARD = 10.
 
 class ProcgenSimulator:
     def __init__(self, env_name: Optional[str] = None, rand_seed: int = 0):
-        # TODO do we need all these?
         self._env_name = env_name
         self._num_env_steps = 6 if self._env_name == 'leaper' else 1  # In leaper, perform 6 "raw" steps for each action
         self._max_simulator_steps = MAX_SIMULATOR_STEPS[env_name]
