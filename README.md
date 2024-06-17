@@ -1,7 +1,5 @@
 # A Bayesian Approach to Online Planning
-The code for the paper "A Bayesian Approach to Online Planning" to be published in ICML 2024.
-
-#### TODO add link to paper
+The code for the paper "<a href="https://arxiv.org/pdf/2406.02103">A Bayesian Approach to Online Planning</a>" to be published in ICML 2024.
 
 ## Abstract
 The combination of Monte Carlo tree search and neural networks has revolutionized online planning. 
